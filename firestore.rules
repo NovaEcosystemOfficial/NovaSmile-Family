@@ -1,0 +1,351 @@
+rules_version = '2';
+
+/**
+ * NovaSmile Family — regole Firestore (Spark, bootstrap client atomico).
+ *
+ * Bootstrap obbligatorio in UN SOLO batch/transaction:
+ *   families/{familyId}
+ *   families/{familyId}/members/{uid}          (role: owner)
+ *   families/{familyId}/profile/settings
+ *   users/{uid}                               (familyId immutabile)
+ *
+ * Coerenza: existsAfter()/getAfter(). Campi: hasAll + hasOnly.
+ * Mitigazione concorrenza: il client DEVE usare runTransaction che legge
+ * users/{uid} prima delle scritture (contention). Le regole da sole non
+ * serializzano due create parallele sullo stesso uid senza quel read.
+ * Piano Spark: nessuna Cloud Function. NON deployare senza approvazione.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function familyPath(familyId) {
+      return /databases/$(database)/documents/families/$(familyId);
+    }
+
+    function memberPath(familyId, uid) {
+      return /databases/$(database)/documents/families/$(familyId)/members/$(uid);
+    }
+
+    function profileSettingsPath(familyId) {
+      return /databases/$(database)/documents/families/$(familyId)/profile/settings;
+    }
+
+    function memberDocPath(familyId) {
+      return memberPath(familyId, request.auth.uid);
+    }
+
+    function isMember(familyId) {
+      return signedIn() && exists(memberDocPath(familyId));
+    }
+
+    function memberRole(familyId) {
+      return get(memberDocPath(familyId)).data.role;
+    }
+
+    function isOwner(familyId) {
+      return isMember(familyId) && memberRole(familyId) == 'owner';
+    }
+
+    function isEditor(familyId) {
+      return isMember(familyId) && memberRole(familyId) in ['owner', 'parent'];
+    }
+
+    function isValidRole(role) {
+      return role in ['owner', 'parent', 'viewer'];
+    }
+
+    function hasExistingFamilyBinding() {
+      return signedIn()
+        && exists(userPath(request.auth.uid))
+        && get(userPath(request.auth.uid)).data.familyId is string
+        && get(userPath(request.auth.uid)).data.familyId.size() > 0;
+    }
+
+    function isAtomicBootstrapBundle(familyId) {
+      return signedIn()
+        && !hasExistingFamilyBinding()
+        && existsAfter(familyPath(familyId))
+        && getAfter(familyPath(familyId)).data.createdByUid == request.auth.uid
+        && existsAfter(memberPath(familyId, request.auth.uid))
+        && getAfter(memberPath(familyId, request.auth.uid)).data.role == 'owner'
+        && existsAfter(profileSettingsPath(familyId))
+        && existsAfter(userPath(request.auth.uid))
+        && getAfter(userPath(request.auth.uid)).data.familyId == familyId;
+    }
+
+    function isValidMemberPayload() {
+      return request.resource.data.keys().hasOnly([
+          'role', 'displayName', 'email', 'joinedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'role', 'displayName', 'email', 'joinedAt'
+        ])
+        && isValidRole(request.resource.data.role)
+        && request.resource.data.displayName is string
+        && request.resource.data.email is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.email.size() > 0
+        && request.resource.data.email.size() <= 200;
+    }
+
+    function isValidFamilyCreate() {
+      return request.resource.data.keys().hasOnly([
+          'name', 'createdByUid', 'status', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'name', 'createdByUid', 'status', 'createdAt'
+        ])
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.status in ['active', 'archived'];
+    }
+
+    function isValidFamilyUpdate() {
+      return request.resource.data.keys().hasOnly([
+          'name', 'createdByUid', 'status', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'name', 'createdByUid', 'status', 'createdAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.status in ['active', 'archived'];
+    }
+
+    function isValidProfileSettings() {
+      return request.resource.data.keys().hasOnly([
+          'parentDisplayName',
+          'childName',
+          'greetingStyle',
+          'showPoints',
+          'reminderSound',
+          'updatedAt',
+          'updatedByUid'
+        ])
+        && request.resource.data.keys().hasAll([
+          'parentDisplayName',
+          'childName',
+          'greetingStyle',
+          'showPoints',
+          'reminderSound',
+          'updatedAt',
+          'updatedByUid'
+        ])
+        && request.resource.data.parentDisplayName is string
+        && request.resource.data.childName is string
+        && request.resource.data.greetingStyle in ['caldo', 'energico', 'tranquillo']
+        && request.resource.data.showPoints is bool
+        && request.resource.data.reminderSound is bool
+        && request.resource.data.updatedByUid == request.auth.uid;
+    }
+
+    function isValidMessageShape() {
+      return request.resource.data.keys().hasOnly([
+          'type', 'text', 'status', 'createdAt', 'createdByUid',
+          'scheduledFor', 'deliveredAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'type', 'text', 'status', 'createdAt', 'createdByUid'
+        ])
+        && request.resource.data.type == 'text'
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.status in [
+          'draft', 'queued', 'scheduled', 'delivered', 'failed'
+        ];
+    }
+
+    function isValidMessageCreate() {
+      return isValidMessageShape()
+        && request.resource.data.createdByUid == request.auth.uid;
+    }
+
+    function isValidAppointmentWrite() {
+      return request.resource.data.keys().hasOnly([
+          'text', 'scheduledFor', 'status', 'createdAt', 'createdByUid'
+        ])
+        && request.resource.data.keys().hasAll([
+          'text', 'scheduledFor', 'status', 'createdAt', 'createdByUid'
+        ])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.status in [
+          'scheduled', 'cancelled', 'sent', 'failed'
+        ]
+        && request.resource.data.createdByUid is string;
+    }
+
+    function isValidRoutineWrite() {
+      return request.resource.data.keys().hasOnly([
+          'title', 'description', 'period', 'points', 'active', 'sortOrder',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'title', 'description', 'period', 'points', 'active', 'sortOrder'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.description is string
+        && request.resource.data.period in ['mattina', 'pomeriggio', 'sera']
+        && request.resource.data.points is int
+        && request.resource.data.points >= 0
+        && request.resource.data.points <= 1000
+        && request.resource.data.active is bool
+        && request.resource.data.sortOrder is int;
+    }
+
+    function isValidRoutineDayId(dateId) {
+      return dateId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isValidRoutineDayWrite(dateId) {
+      return isValidRoutineDayId(dateId)
+        && request.resource.data.keys().hasOnly([
+          'date', 'completions', 'pointsEarned', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['date', 'completions', 'pointsEarned'])
+        && request.resource.data.date == dateId
+        && request.resource.data.completions is map
+        && request.resource.data.pointsEarned is int
+        && request.resource.data.pointsEarned >= 0;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['familyId', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['familyId', 'updatedAt'])
+        && request.resource.data.familyId is string
+        && request.resource.data.familyId.size() > 0
+        && request.resource.data.familyId.size() <= 128
+        && isAtomicBootstrapBundle(request.resource.data.familyId);
+
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.familyId == resource.data.familyId
+        && request.resource.data.keys().hasOnly(['familyId', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['familyId', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
+    match /families/{familyId} {
+      allow read: if isMember(familyId);
+
+      allow create: if isValidFamilyCreate()
+        && isAtomicBootstrapBundle(familyId);
+
+      allow update: if isOwner(familyId)
+        && request.resource.data.createdByUid == resource.data.createdByUid
+        && isValidFamilyUpdate();
+
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isMember(familyId);
+
+        allow create: if (
+            uid == request.auth.uid
+            && request.resource.data.role == 'owner'
+            && isValidMemberPayload()
+            && isAtomicBootstrapBundle(familyId)
+          )
+          || (
+            isOwner(familyId)
+            && uid != request.auth.uid
+            && isValidMemberPayload()
+          );
+
+        allow update: if isOwner(familyId)
+          && isValidMemberPayload()
+          && request.resource.data.joinedAt == resource.data.joinedAt;
+
+        allow delete: if isOwner(familyId) && uid != request.auth.uid;
+      }
+
+      match /profile/{docId} {
+        allow read: if isMember(familyId) && docId == 'settings';
+
+        allow create: if docId == 'settings'
+          && isValidProfileSettings()
+          && (
+            isAtomicBootstrapBundle(familyId)
+            || isEditor(familyId)
+          );
+
+        allow update: if docId == 'settings'
+          && isEditor(familyId)
+          && isValidProfileSettings();
+
+        allow delete: if false;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isMember(familyId);
+        allow create: if isEditor(familyId) && isValidMessageCreate();
+        allow update: if isEditor(familyId)
+          && isValidMessageShape()
+          && request.resource.data.createdByUid == resource.data.createdByUid;
+        allow delete: if isOwner(familyId);
+      }
+
+      match /appointments/{appointmentId} {
+        allow read: if isMember(familyId);
+        allow create: if isEditor(familyId)
+          && isValidAppointmentWrite()
+          && request.resource.data.createdByUid == request.auth.uid;
+        allow update: if isEditor(familyId)
+          && isValidAppointmentWrite()
+          && request.resource.data.createdByUid == resource.data.createdByUid;
+        allow delete: if isOwner(familyId);
+      }
+
+      match /routines/{routineId} {
+        allow read: if isMember(familyId);
+        allow create, update: if isEditor(familyId) && isValidRoutineWrite();
+        allow delete: if isOwner(familyId);
+      }
+
+      match /routineDays/{dateId} {
+        allow read: if isMember(familyId);
+        allow create, update: if isEditor(familyId)
+          && isValidRoutineDayWrite(dateId);
+        allow delete: if isOwner(familyId);
+      }
+
+      match /activities/{activityId} {
+        allow read: if isMember(familyId);
+        allow create: if isEditor(familyId)
+          && request.resource.data.keys().hasOnly([
+            'title', 'detail', 'tone', 'createdAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'title', 'detail', 'tone', 'createdAt'
+          ])
+          && request.resource.data.tone in ['success', 'info', 'warning'];
+        allow update, delete: if isOwner(familyId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
