@@ -61,7 +61,7 @@ export async function listFamilyMessages(
   })
 }
 
-/** Crea messaggio testo. Non invocato dalla UI in STEP 1. */
+/** Crea messaggio testo (status tipicamente draft/queued; non implica consegna Android). */
 export async function createFamilyMessage(
   familyId: string,
   input: CreateMessageInput,

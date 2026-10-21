@@ -78,7 +78,11 @@ function App() {
         <Dashboard preferences={preferences} onNavigate={setSection} />
       )}
       {section === 'messages' && (
-        <Messages childName={preferences.childName} />
+        <Messages
+          childName={preferences.childName}
+          userUid={user.uid}
+          familySession={familySession}
+        />
       )}
       {section === 'voice' && (
         <VoiceMessages childName={preferences.childName} />
