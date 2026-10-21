@@ -437,6 +437,60 @@ describe('Firestore rules — Spark atomic bootstrap', () => {
     )
   })
 
+  it('owner non può aggiungere un secondo membro come parent o owner', async () => {
+    await seedFamilyWithOwner(FAMILY_A, 'owner1')
+    const owner = testEnv.authenticatedContext('owner1')
+    await assertFails(
+      setDoc(
+        doc(owner.firestore(), 'families', FAMILY_A, 'members', 'kid-parent'),
+        memberPayload('parent', {
+          displayName: 'Nicholas',
+          email: 'nicholas@example.com',
+        }),
+      ),
+    )
+    await assertFails(
+      setDoc(
+        doc(owner.firestore(), 'families', FAMILY_A, 'members', 'kid-owner'),
+        memberPayload('owner', {
+          displayName: 'Nicholas',
+          email: 'nicholas@example.com',
+        }),
+      ),
+    )
+  })
+
+  it('owner non può promuovere un viewer a parent', async () => {
+    await seedFamilyWithOwner(FAMILY_A, 'owner1', { viewerUid: 'viewer1' })
+    const owner = testEnv.authenticatedContext('owner1')
+    const snap = await getDoc(
+      doc(owner.firestore(), 'families', FAMILY_A, 'members', 'viewer1'),
+    )
+    const joinedAt = snap.data()?.joinedAt
+    await assertFails(
+      updateDoc(
+        doc(owner.firestore(), 'families', FAMILY_A, 'members', 'viewer1'),
+        {
+          role: 'parent',
+          displayName: 'Nicholas',
+          email: 'nicholas@example.com',
+          joinedAt,
+        },
+      ),
+    )
+  })
+
+  it('non-owner non può creare membership viewer', async () => {
+    await seedFamilyWithOwner(FAMILY_A, 'owner1', { viewerUid: 'viewer1' })
+    const viewer = testEnv.authenticatedContext('viewer1')
+    await assertFails(
+      setDoc(
+        doc(viewer.firestore(), 'families', FAMILY_A, 'members', 'altro-kid'),
+        memberPayload('viewer'),
+      ),
+    )
+  })
+
   it('transaction concorrenti stesso UID: un solo binding users', async () => {
     const uid = 'race-user'
     const ctxA = testEnv.authenticatedContext(uid)

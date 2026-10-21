@@ -37,8 +37,10 @@ export { getUserFamilyBinding } from './users'
 export type { UserFamilyBinding } from './users'
 
 export {
+  createViewerMember,
   getFamilyMember,
   listFamilyMembers,
+  removeFamilyMember,
   upsertFamilyMember,
 } from './members'
 

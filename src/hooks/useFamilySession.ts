@@ -4,6 +4,7 @@ import {
   bootstrapFamilyAtomic,
   resolveVerifiedFamilyId,
 } from '../data/familyBootstrap'
+import { getFamilyMember } from '../data/firestore/members'
 import { getFamilyProfile } from '../data/firestore/profile'
 import { profileToPreferences } from '../data/familyTrust'
 import type { FamilyPreferences } from '../types'
@@ -111,12 +112,18 @@ export function useFamilySession(user: User | null): FamilySession {
         }
         // Errori soft (es. permission-denied su binding assente): prova bootstrap.
       } else if (verified.data) {
-        const profileResult = await getFamilyProfile(verified.data)
+        const [profileResult, memberResult] = await Promise.all([
+          getFamilyProfile(verified.data),
+          getFamilyMember(verified.data, activeUid),
+        ])
         if (cancelled) return
         setSession({
           status: 'ready',
           familyId: verified.data,
-          role: null,
+          role:
+            memberResult.ok && memberResult.data
+              ? memberResult.data.role
+              : null,
           cloudProfile:
             profileResult.ok && profileResult.data
               ? profileToPreferences(profileResult.data)

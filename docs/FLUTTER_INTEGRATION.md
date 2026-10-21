@@ -13,24 +13,19 @@ Finché non esiste un progetto Flutter dedicato a NovaSmile Child nello stesso m
 - Auth: stesso progetto; tipicamente Google o account bambino collegato dal genitore
 - Dipendenze consigliate: `firebase_core`, `firebase_auth`, `cloud_firestore`, opzionale `firebase_storage`, `connectivity_plus`
 
-## Associazione famiglia
+## Associazione famiglia (web → Kids)
 
-1. Genitore (owner) crea membership `families/{familyId}/members/{childUid}` con `role: viewer` (solo owner può creare membri non-self fuori bootstrap).
-2. Oppure flusso invitazionale futuro (non implementato): mai permettere al client bambino di scrivere `role: owner`.
-3. Bambino legge `users/{uid}.familyId` dopo binding creato dall’owner (oggi il binding `users/{uid}` nasce solo dal bootstrap owner; per il bambino serve create member + eventuale doc user dedicato o lookup via member list — **da progettare senza indebolire le regole**).
+1. Genitore apre **Famiglia → Gestione famiglia** nella webapp (account owner).
+2. Copia l’UID Firebase mostrato da NovaSmile Kids (Nicholas, Google Auth).
+3. Owner inserisce UID + nome; ruolo forzato `viewer`. Conferma → create `families/{familyId}/members/{childUid}`.
+4. Kids verifica `get(families/{familyId}/members/{uid})` con `role == viewer` (familyId dalla sessione/config Kids, non scelto liberamente dal bambino per ottenere privilegi).
 
-**Limite attuale:** `users/{uid}` create è solo nel bootstrap atomico owner. Per collegare un secondo account bambino in modo sicuro serve un’operazione owner-only aggiuntiva (es. owner scrive `users/{childUid}` non è permesso dalle regole attuali: solo `request.auth.uid == uid`). Quindi l’associazione bambino richiede:
+**Note di sicurezza**
 
-- Auth del bambino, e
-- Owner che crea `members/{childUid}` con role `viewer`, e
-- App bambino che risolve `familyId` tramite query membership **o** familyId fornito in deep link / pairing code verificato lato regole.
-
-Query “tutte le famiglie dove sono member” non è banale senza collection group index. Opzioni Spark-safe:
-
-1. **Pairing code** one-time in un doc `familyInvites/{code}` (richiede regole dedicate, non ancora presenti).
-2. **familyId inserito una volta** dall’adulto sul dispositivo bambino e verificato con `get(members/{uid})`.
-
-Consigliato per MVP: genitore inserisce `familyId` sul device bambino → app fa `get families/{id}/members/{uid}` e procede solo se esiste.
+- Solo owner può creare membri non-self; ruolo consentito dalle regole: **solo `viewer`**.
+- Nessuna scrittura `users/{childUid}` da parte dell’owner (le regole permettono solo `auth.uid == uid`).
+- Kids non deve auto-assegnarsi owner/parent.
+- Il pairing **non** è completo finché Kids non conferma la membership sul device.
 
 ## Operazioni permesse al bambino (`viewer`)
 

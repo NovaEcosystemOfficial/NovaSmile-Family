@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:rules": "firebase emulators:exec --only firestore --project demo-novasmile-family \"vitest run tests/firestore.rules.test.ts\"",
-    "test:unit": "vitest run tests/familyTrust.test.ts tests/dateTime.test.ts",
+    "test:unit": "vitest run tests/familyTrust.test.ts tests/dateTime.test.ts tests/membersCloud.test.ts",
     "test": "npm run test:unit && npm run test:rules"
   },
 

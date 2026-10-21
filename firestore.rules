@@ -261,6 +261,7 @@ service cloud.firestore {
       match /members/{uid} {
         allow read: if isMember(familyId);
 
+        // Bootstrap: self come owner. Pairing: solo owner può aggiungere altri, e solo come viewer.
         allow create: if (
             uid == request.auth.uid
             && request.resource.data.role == 'owner'
@@ -270,12 +271,22 @@ service cloud.firestore {
           || (
             isOwner(familyId)
             && uid != request.auth.uid
+            && request.resource.data.role == 'viewer'
             && isValidMemberPayload()
           );
 
+        // Nessuna escalation: altri membri restano viewer; self owner non cambia ruolo.
         allow update: if isOwner(familyId)
           && isValidMemberPayload()
-          && request.resource.data.joinedAt == resource.data.joinedAt;
+          && request.resource.data.joinedAt == resource.data.joinedAt
+          && (
+            (uid == request.auth.uid
+              && request.resource.data.role == 'owner'
+              && resource.data.role == 'owner')
+            || (uid != request.auth.uid
+              && request.resource.data.role == 'viewer'
+              && resource.data.role == 'viewer')
+          );
 
         allow delete: if isOwner(familyId) && uid != request.auth.uid;
       }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Card } from '../components/Card'
 import { DemoBanner, type BannerTone } from '../components/DemoBanner'
+import { FamilyManagement } from '../components/FamilyManagement'
 import { Sorrino } from '../components/Sorrino'
 import { saveVerifiedFamilyProfile } from '../data/profileCloud'
 import type { FamilySession } from '../hooks/useFamilySession'
@@ -29,7 +30,7 @@ function connectionView(session: FamilySession): ConnectionView {
       badge: 'Cloud',
       tone: 'ok',
       banner:
-        'Profilo famiglia collegato a Firestore. Messaggi, vocali e routine restano in modalità demo su questo dispositivo.',
+        'Profilo famiglia collegato a Firestore. Usa Gestione famiglia per associare l’UID di Nicholas come viewer.',
     }
   }
 
@@ -264,12 +265,14 @@ export function FamilyProfile({
         </Card>
       </div>
 
+      <FamilyManagement userUid={userUid} familySession={familySession} />
+
       <Card accent="purple" title="Sicurezza e collegamento">
         <div className="connection-status" role="status">
           <span className="connection-status__label">{connection.label}</span>
           <p className="connection-status__detail">
             {familySession.cloudLinked && familySession.familyId
-              ? `Famiglia cloud attiva (id …${familySession.familyId.slice(-6)}). Sincronizzazione Android non dichiarata.`
+              ? `Famiglia cloud attiva (id …${familySession.familyId.slice(-6)}). Sync Android non dichiarata finché Kids non verifica la membership.`
               : familySession.message ??
                 'Nessuna famiglia cloud verificata su questo account.'}
           </p>
@@ -280,7 +283,10 @@ export function FamilyProfile({
             Bootstrap famiglia atomico sul client (transazione Firestore), senza
             Cloud Functions.
           </li>
-          <li>Messaggi, vocali e routine: ancora demo locale, non cloud.</li>
+          <li>
+            Pairing Kids: solo owner crea members/[uid] con ruolo viewer; il
+            bambino non sceglie famiglia né privilegi.
+          </li>
         </ul>
       </Card>
     </div>
