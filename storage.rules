@@ -1,0 +1,51 @@
+rules_version = '2';
+
+/**
+ * NovaSmile Family — Storage (Spark).
+ * Path: families/{familyId}/voice/{uid}/{voiceId}
+ * Richiede membership Firestore: families/{familyId}/members/{request.auth.uid}
+ * NON pubblicare senza approvazione esplicita.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isFamilyMember(familyId) {
+      return signedIn()
+        && firestore.exists(
+          /databases/(default)/documents/families/$(familyId)/members/$(request.auth.uid)
+        );
+    }
+
+    function isFamilyEditor(familyId) {
+      return isFamilyMember(familyId)
+        && firestore.get(
+          /databases/(default)/documents/families/$(familyId)/members/$(request.auth.uid)
+        ).data.role in ['owner', 'parent'];
+    }
+
+    function isFamilyOwner(familyId) {
+      return isFamilyMember(familyId)
+        && firestore.get(
+          /databases/(default)/documents/families/$(familyId)/members/$(request.auth.uid)
+        ).data.role == 'owner';
+    }
+
+    match /families/{familyId}/voice/{uid}/{voiceId} {
+      allow read: if isFamilyMember(familyId);
+      allow create: if isFamilyEditor(familyId)
+        && request.auth.uid == uid
+        && request.resource.size > 0
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('audio/.*');
+      allow update: if false;
+      allow delete: if isFamilyOwner(familyId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

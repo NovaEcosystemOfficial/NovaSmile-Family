@@ -96,3 +96,33 @@ export function routineDayRef(
 ): DocumentReference {
   return doc(db, 'families', familyId, 'routineDays', dateId)
 }
+
+export function activitiesCol(
+  db: Firestore,
+  familyId: string,
+): CollectionReference {
+  return collection(db, 'families', familyId, 'activities')
+}
+
+export function activityRef(
+  db: Firestore,
+  familyId: string,
+  activityId: string,
+): DocumentReference {
+  return doc(db, 'families', familyId, 'activities', activityId)
+}
+
+export function voiceMessagesCol(
+  db: Firestore,
+  familyId: string,
+): CollectionReference {
+  return collection(db, 'families', familyId, 'voiceMessages')
+}
+
+export function voiceMessageRef(
+  db: Firestore,
+  familyId: string,
+  voiceId: string,
+): DocumentReference {
+  return doc(db, 'families', familyId, 'voiceMessages', voiceId)
+}

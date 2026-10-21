@@ -1,5 +1,5 @@
 /**
- * Data access layer Firestore — non collegato alla UI in STEP 1.
+ * Data access layer Firestore (Spark, client-only).
  * Tutte le operazioni restituiscono DataResult esplicito (niente throw verso la UI).
  */
 
@@ -8,6 +8,8 @@ export { fail, firestoreUnavailable, mapFirestoreError, ok } from './errors'
 
 export { PROFILE_SETTINGS_DOC_ID } from './paths'
 export {
+  activitiesCol,
+  activityRef,
   appointmentRef,
   appointmentsCol,
   familyRef,
@@ -21,6 +23,8 @@ export {
   routineRef,
   routinesCol,
   userRef,
+  voiceMessageRef,
+  voiceMessagesCol,
 } from './refs'
 
 export {
@@ -42,14 +46,18 @@ export { getFamilyProfile, upsertFamilyProfile } from './profile'
 
 export {
   createFamilyMessage,
+  deleteFamilyMessage,
   getFamilyMessage,
   listFamilyMessages,
+  updateFamilyMessage,
 } from './messages'
 
 export {
   createFamilyAppointment,
+  deleteFamilyAppointment,
   getFamilyAppointment,
   listFamilyAppointments,
+  updateFamilyAppointment,
 } from './appointments'
 
 export {
@@ -60,3 +68,14 @@ export {
   listFamilyRoutines,
   upsertFamilyRoutineDay,
 } from './routines'
+
+export {
+  createFamilyActivity,
+  listFamilyActivities,
+} from './activities'
+
+export {
+  createFamilyVoiceMessage,
+  deleteFamilyVoiceMessage,
+  listFamilyVoiceMessages,
+} from './voiceMessages'

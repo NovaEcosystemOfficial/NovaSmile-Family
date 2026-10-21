@@ -4,6 +4,10 @@ import {
   getFirestore as getFirestoreInstance,
   type Firestore,
 } from 'firebase/firestore'
+import {
+  getStorage as getStorageInstance,
+  type FirebaseStorage,
+} from 'firebase/storage'
 
 export const FIREBASE_ENV_KEYS = [
   'VITE_FIREBASE_API_KEY',
@@ -76,6 +80,7 @@ export function resolveFirebaseConfig(): FirebaseConfigResult {
 let app: FirebaseApp | null = null
 let auth: Auth | null = null
 let firestore: Firestore | null = null
+let storage: FirebaseStorage | null = null
 let initError: string | null = null
 let initMissing: FirebaseEnvKey[] = []
 
@@ -114,6 +119,7 @@ function ensureApp(): {
     app = null
     auth = null
     firestore = null
+    storage = null
     return { app: null, error: initError, missing: [] }
   }
 }
@@ -139,6 +145,19 @@ export function getFirestore(): Firestore | null {
     firestore = getFirestoreInstance(state.app)
   }
   return firestore
+}
+
+/**
+ * Firebase Storage (Spark: quote gratuite, no Blaze richiesto per uso base).
+ * Null se la config manca. Le regole Storage vanno pubblicate separatamente.
+ */
+export function getFirebaseStorage(): FirebaseStorage | null {
+  const state = ensureApp()
+  if (!state.app) return null
+  if (!storage) {
+    storage = getStorageInstance(state.app)
+  }
+  return storage
 }
 
 export function getFirebaseStatus(): {

@@ -1,32 +1,30 @@
-# React + TypeScript + Vite
+# NovaSmile Family
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Pannello genitori (React 19 + TypeScript + Vite 8) per le routine ortodontiche di Nicholas. Firebase project `novasmile-416b6`, piano **Spark**.
 
-Currently, two official plugins are available:
+## Documentazione
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- [Architettura e schema Firestore](docs/ARCHITECTURE.md)
+- [Operazioni, limiti Spark, prove locali](docs/OPERATIONS.md)
+- [Contratto integrazione Flutter](docs/FLUTTER_INTEGRATION.md)
+- [Bootstrap famiglia](firestore/BOOTSTRAP.md)
 
-## React Compiler
+## Avvio rapido
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cp .env.example .env.local
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Script
+
+| Comando | Descrizione |
+|---------|-------------|
+| `npm run dev` | Dev server |
+| `npm run build` | Typecheck + production build |
+| `npm run lint` | Oxlint |
+| `npm run test:unit` | Unit test |
+| `npm run test:rules` | Regole Firestore (emulator) |
+
+Nessun secret nel repository. Non eseguire deploy senza approvazione esplicita.

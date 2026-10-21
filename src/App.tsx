@@ -75,7 +75,12 @@ function App() {
         </p>
       ) : null}
       {section === 'dashboard' && (
-        <Dashboard preferences={preferences} onNavigate={setSection} />
+        <Dashboard
+          preferences={preferences}
+          onNavigate={setSection}
+          userUid={user.uid}
+          familySession={familySession}
+        />
       )}
       {section === 'messages' && (
         <Messages
@@ -85,15 +90,25 @@ function App() {
         />
       )}
       {section === 'voice' && (
-        <VoiceMessages childName={preferences.childName} />
+        <VoiceMessages
+          childName={preferences.childName}
+          userUid={user.uid}
+          familySession={familySession}
+        />
       )}
       {section === 'schedule' && (
-        <Schedule childName={preferences.childName} />
+        <Schedule
+          childName={preferences.childName}
+          userUid={user.uid}
+          familySession={familySession}
+        />
       )}
       {section === 'routines' && (
         <Routines
           childName={preferences.childName}
           showPoints={preferences.showPoints}
+          userUid={user.uid}
+          familySession={familySession}
         />
       )}
       {section === 'profile' && (

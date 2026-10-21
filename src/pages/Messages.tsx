@@ -6,7 +6,9 @@ import { Sorrino } from '../components/Sorrino'
 import { formatItalianDateTime } from '../data/demo'
 import {
   createVerifiedFamilyMessage,
+  deleteVerifiedFamilyMessage,
   listVerifiedFamilyMessages,
+  markMessageAvailableForChild,
 } from '../data/messagesCloud'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import type { FamilySession } from '../hooks/useFamilySession'
@@ -24,14 +26,15 @@ interface MessagesProps {
 function cloudStatusLabel(status: CloudMessageStatus): string {
   switch (status) {
     case 'draft':
-    case 'queued':
       return 'Salvato nel cloud'
+    case 'queued':
+      return 'Disponibile per lettura Android'
     case 'scheduled':
       return 'Programmato (cloud)'
     case 'failed':
       return 'Salvataggio non riuscito'
     case 'delivered':
-      return 'Stato cloud: delivered'
+      return 'Consegnato (conferma dispositivo)'
   }
 }
 
@@ -57,6 +60,7 @@ export function Messages({
   const [feedback, setFeedback] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [busyId, setBusyId] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
 
   const sessionLoading = familySession.status === 'loading'
@@ -151,6 +155,49 @@ export function Messages({
     setFeedback(
       'Messaggio salvato su Firestore. Non consegnato a Nicholas: l’app Android non è ancora collegata.',
     )
+  }
+
+  async function markAvailable(message: FamilyMessage) {
+    if (!familyId) return
+    setBusyId(message.id)
+    setSaveError(null)
+    const result = await markMessageAvailableForChild(
+      familyId,
+      userUid,
+      message,
+    )
+    setBusyId(null)
+    if (!result.ok) {
+      setSaveError(result.error.message)
+      return
+    }
+    setMessages((prev) =>
+      prev.map((m) => (m.id === message.id ? result.data : m)),
+    )
+    setFeedback(
+      'Messaggio contrassegnato come disponibile per la lettura dall’app Android. Nessuna notifica o conferma di consegna.',
+    )
+  }
+
+  async function removeMessage(message: FamilyMessage) {
+    if (!familyId) return
+    if (!window.confirm('Eliminare definitivamente questo messaggio cloud?')) {
+      return
+    }
+    setBusyId(message.id)
+    setSaveError(null)
+    const result = await deleteVerifiedFamilyMessage(
+      familyId,
+      userUid,
+      message.id,
+    )
+    setBusyId(null)
+    if (!result.ok) {
+      setSaveError(result.error.message)
+      return
+    }
+    setMessages((prev) => prev.filter((m) => m.id !== message.id))
+    setFeedback('Messaggio eliminato da Firestore.')
   }
 
   let bannerTone: BannerTone = 'ok'
@@ -316,8 +363,35 @@ export function Messages({
                   {msg.createdAt
                     ? formatItalianDateTime(msg.createdAt)
                     : 'Data in aggiornamento'}{' '}
-                  · {cloudStatusLabel(msg.status)} · Android non collegata
+                  · {cloudStatusLabel(msg.status)}
+                  {msg.status !== 'delivered'
+                    ? ' · nessuna conferma consegna'
+                    : ''}
                 </span>
+                <div className="btn-row" style={{ marginTop: 8 }}>
+                  {msg.status === 'draft' ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={busyId === msg.id}
+                      onClick={() => {
+                        void markAvailable(msg)
+                      }}
+                    >
+                      Rendi disponibile per Android
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busyId === msg.id}
+                    onClick={() => {
+                      void removeMessage(msg)
+                    }}
+                  >
+                    Elimina
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

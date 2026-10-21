@@ -108,6 +108,19 @@ export interface FamilyActivity {
   createdAt: string
 }
 
+/** Metadati vocale: file in Storage, non blob in Firestore. */
+export interface FamilyVoiceMessage {
+  id: string
+  familyId: string
+  storagePath: string
+  contentType: string
+  durationSec: number
+  byteSize: number
+  status: 'uploaded' | 'failed'
+  createdAt: string
+  createdByUid: string
+}
+
 /** Input tipizzati per create/update (senza id generati dal server). */
 
 export interface CreateFamilyInput {
