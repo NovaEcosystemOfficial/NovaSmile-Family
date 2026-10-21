@@ -26,11 +26,12 @@ export function Login({
         <p className="eyebrow">NovaSmile Family</p>
         <h1>Accesso genitori</h1>
         <p className="lede">
-          Accedi con Google per aprire il pannello privato. La sincronizzazione
-          con l’app Android non è attiva in questa versione.
+          Accedi con Google per aprire il pannello privato. Dopo l’accesso, il
+          profilo famiglia può collegarsi a Firestore. La sincronizzazione con
+          l’app Android non è attiva in questa versione.
         </p>
 
-        <DemoBanner message="Modalità demo locale per i contenuti del pannello. Auth Google usa Firebase; Firestore non è ancora collegato." />
+        <DemoBanner message="Messaggi, vocali e routine restano in demo locale. Auth Google e profilo famiglia usano Firebase (piano Spark)." />
 
         {configBlocked ? (
           <div className="alert alert-error" role="alert">

@@ -1,5 +1,9 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
+import {
+  getFirestore as getFirestoreInstance,
+  type Firestore,
+} from 'firebase/firestore'
 
 export const FIREBASE_ENV_KEYS = [
   'VITE_FIREBASE_API_KEY',
@@ -71,47 +75,70 @@ export function resolveFirebaseConfig(): FirebaseConfigResult {
 
 let app: FirebaseApp | null = null
 let auth: Auth | null = null
+let firestore: Firestore | null = null
 let initError: string | null = null
+let initMissing: FirebaseEnvKey[] = []
 
-function ensureFirebase(): {
+function ensureApp(): {
   app: FirebaseApp | null
-  auth: Auth | null
   error: string | null
   missing: FirebaseEnvKey[]
 } {
+  if (app) {
+    return { app, error: null, missing: [] }
+  }
+
   const resolved = resolveFirebaseConfig()
   if (!resolved.ok) {
+    initError =
+      'Configurazione Firebase incompleta. Crea un file .env.local con le variabili VITE_FIREBASE_* (vedi .env.example).'
+    initMissing = resolved.missing
     return {
       app: null,
-      auth: null,
-      error:
-        'Configurazione Firebase incompleta. Crea un file .env.local con le variabili VITE_FIREBASE_* (vedi .env.example).',
+      error: initError,
       missing: resolved.missing,
     }
   }
 
-  if (app && auth) {
-    return { app, auth, error: null, missing: [] }
-  }
-
   try {
     app = initializeApp(resolved.config)
-    auth = getAuth(app)
     initError = null
-    return { app, auth, error: null, missing: [] }
+    initMissing = []
+    return { app, error: null, missing: [] }
   } catch (err) {
     initError =
       err instanceof Error
         ? `Impossibile inizializzare Firebase: ${err.message}`
         : 'Impossibile inizializzare Firebase.'
+    initMissing = []
     app = null
     auth = null
-    return { app: null, auth: null, error: initError, missing: [] }
+    firestore = null
+    return { app: null, error: initError, missing: [] }
   }
 }
 
+export function getFirebaseApp(): FirebaseApp | null {
+  return ensureApp().app
+}
+
 export function getFirebaseAuth(): Auth | null {
-  return ensureFirebase().auth
+  const state = ensureApp()
+  if (!state.app) return null
+  if (!auth) {
+    auth = getAuth(state.app)
+  }
+  return auth
+}
+
+/** Restituisce Firestore riusando la stessa app Auth. Null se la config manca. */
+export function getFirestore(): Firestore | null {
+  const state = ensureApp()
+  if (!state.app) return null
+  if (!firestore) {
+    firestore = getFirestoreInstance(state.app)
+  }
+  return firestore
 }
 
 export function getFirebaseStatus(): {
@@ -119,10 +146,13 @@ export function getFirebaseStatus(): {
   error: string | null
   missing: FirebaseEnvKey[]
 } {
-  const state = ensureFirebase()
+  const authInstance = getFirebaseAuth()
+  if (authInstance) {
+    return { ready: true, error: null, missing: [] }
+  }
   return {
-    ready: state.auth != null,
-    error: state.error,
-    missing: state.missing,
+    ready: false,
+    error: initError,
+    missing: initMissing,
   }
 }

@@ -599,6 +599,36 @@ svg {
   font-size: 0.92rem;
 }
 
+.demo-banner--ok {
+  background: linear-gradient(90deg, rgba(134, 239, 172, 0.45), rgba(56, 189, 248, 0.18));
+  border-color: rgba(22, 163, 74, 0.35);
+  color: #14532d;
+}
+
+.demo-banner--ok .demo-banner__badge {
+  background: #16a34a;
+}
+
+.demo-banner--warn {
+  background: linear-gradient(90deg, rgba(253, 230, 138, 0.55), rgba(251, 191, 36, 0.2));
+  border-color: rgba(217, 119, 6, 0.35);
+  color: #92400e;
+}
+
+.demo-banner--warn .demo-banner__badge {
+  background: #d97706;
+}
+
+.demo-banner--error {
+  background: linear-gradient(90deg, rgba(254, 202, 202, 0.65), rgba(248, 113, 113, 0.2));
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #991b1b;
+}
+
+.demo-banner--error .demo-banner__badge {
+  background: #dc2626;
+}
+
 .demo-banner__badge {
   flex: 0 0 auto;
   background: var(--orange);
@@ -608,6 +638,25 @@ svg {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.connection-status {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+
+.connection-status__label {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink, #1e1b4b);
+}
+
+.connection-status__detail {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #475569;
 }
 
 .alert {

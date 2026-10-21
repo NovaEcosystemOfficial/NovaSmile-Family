@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Layout } from './components/Layout'
 import { DEFAULT_PREFERENCES } from './data/demo'
 import { useAuth } from './hooks/useAuth'
+import { useFamilySession } from './hooks/useFamilySession'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { Dashboard } from './pages/Dashboard'
 import { FamilyProfile } from './pages/FamilyProfile'
@@ -32,6 +33,8 @@ function App() {
     signIn,
     signOutUser,
   } = useAuth()
+
+  const familySession = useFamilySession(user)
 
   if (phase === 'loading') {
     return (
@@ -94,6 +97,9 @@ function App() {
           preferences={preferences}
           onChange={setPreferences}
           storageError={prefsError}
+          userUid={user.uid}
+          familySession={familySession}
+          onApplyCloudProfile={setPreferences}
         />
       )}
     </Layout>

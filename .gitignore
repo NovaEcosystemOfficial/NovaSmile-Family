@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*.log
+.emulator-data
 
 # Env locali / sensibili (mai in repository)
 .env
