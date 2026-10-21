@@ -28,8 +28,17 @@ export async function listVerifiedFamilyMessages(
 }
 
 /**
- * Crea messaggio testo su Firestore dopo verifica ruolo editor.
- * Stato `draft`: salvato nel cloud, non consegnato all’app Android.
+ * Stato impostato alla create per invio immediato.
+ * Compatibile con Kids: `queued` = disponibile per lettura membri/Android.
+ * Non implica lettura o consegna sul device.
+ */
+export function statusForImmediateSend(): 'queued' {
+  return 'queued'
+}
+
+/**
+ * Invia messaggio testo: una sola create Firestore con status `queued`.
+ * Disponibile subito per NovaSmile Kids. Nessuna conferma di lettura/consegna.
  */
 export async function createVerifiedFamilyMessage(
   familyId: string,
@@ -60,12 +69,12 @@ export async function createVerifiedFamilyMessage(
   const created = await createFamilyMessage(familyId, {
     text: trimmed,
     createdByUid: uid,
-    status: 'draft',
+    status: statusForImmediateSend(),
   })
   if (!created.ok) return created
 
   void createFamilyActivity(familyId, {
-    title: 'Messaggio salvato',
+    title: 'Messaggio inviato',
     detail: trimmed.slice(0, 120),
     tone: 'info',
   })

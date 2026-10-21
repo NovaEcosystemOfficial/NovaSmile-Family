@@ -20,6 +20,10 @@ Finché non esiste un progetto Flutter dedicato a NovaSmile Child nello stesso m
 3. Owner inserisce UID + nome; ruolo forzato `viewer`. Conferma → create `families/{familyId}/members/{childUid}`.
 4. Kids verifica `get(families/{familyId}/members/{uid})` con `role == viewer` (familyId dalla sessione/config Kids, non scelto liberamente dal bambino per ottenere privilegi).
 
+**Regole members (pairing):** il bambino deve poter fare `get` sul **proprio**
+`members/{uid}` anche prima di essere `isMember` (altrimenti → `permission-denied`
+invece di documento assente). `list` e lettura di altri membri restano `isMember`.
+
 **Note di sicurezza**
 
 - Solo owner può creare membri non-self; ruolo consentito dalle regole: **solo `viewer`**.

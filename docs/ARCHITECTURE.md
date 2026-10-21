@@ -42,8 +42,8 @@ Il bambino **non** può auto-promuoversi a owner: `users/{uid}.familyId` è immu
 
 | Status | Significato |
 |--------|-------------|
-| `draft` | Salvato nel cloud |
-| `queued` | Disponibile per lettura membri/Android |
+| `draft` | Salvato nel cloud (legacy; non ancora esposto a Kids) |
+| `queued` | Disponibile per lettura membri/Android (stato di invio immediato) |
 | `scheduled` | Programmato (documento con data) |
 | `delivered` | Solo con `deliveredAt` da conferma dispositivo reale |
 | `failed` | Errore |

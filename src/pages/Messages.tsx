@@ -113,18 +113,19 @@ export function Messages({
     setSaveError(null)
   }
 
-  async function saveToCloud() {
+  async function sendMessage() {
     const text = draft.text.trim()
     if (!text) {
-      setSaveError('Scrivi un messaggio prima di salvarlo nel cloud.')
+      setSaveError('Scrivi un messaggio prima di inviarlo.')
       return
     }
     if (!cloudReady || !familyId) {
       setSaveError(
-        'Collegamento famiglia non verificato: impossibile salvare su Firestore.',
+        'Collegamento famiglia non verificato: impossibile inviare su Firestore.',
       )
       return
     }
+    if (saving) return
 
     setSaving(true)
     setSaveError(null)
@@ -153,7 +154,7 @@ export function Messages({
     setDraft({ text: '', updatedAt: new Date().toISOString() })
     setPreviewOpen(false)
     setFeedback(
-      'Messaggio salvato su Firestore. Non consegnato a Nicholas: l’app Android non è ancora collegata.',
+      'Messaggio inviato e disponibile su Android. Nessuna conferma di lettura o consegna sul telefono.',
     )
   }
 
@@ -203,7 +204,7 @@ export function Messages({
   let bannerTone: BannerTone = 'ok'
   let bannerBadge = 'Cloud'
   let bannerMessage =
-    'Messaggi su Firestore per la famiglia verificata. Nessuna consegna Android in questa fase.'
+    'Invia messaggio: salvato su Firestore come disponibile per Kids (`queued`). Nessuna conferma di lettura/consegna.'
 
   if (sessionLoading) {
     bannerTone = 'demo'
@@ -235,8 +236,8 @@ export function Messages({
           <p className="eyebrow">Messaggi per {childName}</p>
           <h2>Componi un messaggio</h2>
           <p className="lede">
-            Scrivi e salva il testo su Firestore. In questa fase non viene
-            consegnato all’app Android di Nicholas.
+            Scrivi e invia: il messaggio viene salvato su Firestore e reso subito
+            disponibile all’app Kids. Non implica che Nicholas l’abbia letto.
           </p>
         </div>
         <Sorrino mood="happy" size={76} />
@@ -297,11 +298,11 @@ export function Messages({
               type="button"
               className="btn btn-primary"
               onClick={() => {
-                void saveToCloud()
+                void sendMessage()
               }}
               disabled={!canWrite || !draft.text.trim()}
             >
-              {saving ? 'Salvataggio…' : 'Salva nel cloud'}
+              {saving ? 'Invio…' : 'Invia messaggio'}
             </button>
           </div>
         </Card>
@@ -316,7 +317,7 @@ export function Messages({
               <Sorrino mood="cheer" size={48} />
               <p>{draft.text.trim()}</p>
               <span className="meta">
-                Anteprima locale · non ancora salvata / non consegnata
+                Anteprima locale · non ancora inviata
               </span>
             </div>
           ) : (
@@ -352,7 +353,7 @@ export function Messages({
         ) : messages.length === 0 ? (
           <EmptyState
             title="Nessun messaggio cloud"
-            description="Quando salvi un messaggio su Firestore, apparirà qui."
+            description="Quando invii un messaggio, apparirà qui come disponibile per Android."
           />
         ) : (
           <ul className="feed-list">

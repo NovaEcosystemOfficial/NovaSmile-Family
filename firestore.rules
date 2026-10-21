@@ -259,7 +259,13 @@ service cloud.firestore {
       allow delete: if false;
 
       match /members/{uid} {
-        allow read: if isMember(familyId);
+        // get sul proprio doc: necessario al pairing Kids (verifica membership)
+        // SENZA essere già isMember. Altrimenti Firestore risponde permission-denied
+        // invece di "documento assente" quando il viewer non è ancora creato.
+        // list e lettura di altri membri: solo membri della famiglia.
+        allow get: if signedIn()
+          && (request.auth.uid == uid || isMember(familyId));
+        allow list: if isMember(familyId);
 
         // Bootstrap: self come owner. Pairing: solo owner può aggiungere altri, e solo come viewer.
         allow create: if (
